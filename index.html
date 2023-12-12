@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Current Weather API</title>
+	<style>
+		
+	</style>
+</head>
+<body>
+
+	<h1>Current Weather</h1>
+	<weather-widget>
+		<!-- This is the fallback content -->
+		Current Weather Conditions Unavailable
+	</weather-widget>
+
+    <style>
+        img {
+            height: 30px;
+            width: 30px;
+            padding: 5px 5px 0 5px;
+        }
+
+        div {
+            padding: 5px;
+        }
+    </style>
+
+	<script type="module">
+        let curr_temp = 0;
+        let curr_weather = '';
+        let curr_forecast = '';
+
+		// creating rating widget web component
+		class WeatherWidget extends HTMLElement {
+			// create web component here
+
+			// class constructor object
+			constructor() {
+				// always call super first in constructor
+				super();
+
+                // clear the light DOM stuff
+                this.innerHTML = '';
+                this.curr_temp = curr_temp;
+                this.curr_weather = curr_weather;
+
+                // create an img element
+                // create a span element with weather and temp
+                this.weather_img = document.createElement('img');
+                this.weather_data = document.createElement('div');
+                this.weather_data.style.display = 'inline';
+                this.wind_spd = document.createElement('div');
+                this.humidity = document.createElement('div');
+                this.appendChild(this.weather_img);
+                this.appendChild(this.weather_data);
+                this.appendChild(this.wind_spd);
+                this.appendChild(this.humidity);
+
+				console.log('constructed', this); 
+			}
+
+			// runs each time the element is appended to or moved in the DOM
+			connectedCallback() {
+
+                // The latitude of San Diego, CA, USA is 32.715736, and the longitude is -117.161087. 
+                const apiUrl = 'https://api.weather.gov/points/32.715736,-117.161087';
+
+                console.log('partly Sunny'.toLowerCase().includes('sun'));
+
+                // Make the GET request using fetch
+                fetch(apiUrl)
+                .then(response => {
+                    // Check if the request was successful
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    // Parse the response as JSON
+                    return response.json();
+                })
+                .then(data => {
+                    // Handle the response data
+                    // console.log('API Response:', data);
+
+                    // console.log('properties.forecast: ', data.properties.forecast);
+
+                    // send second fetch request to get forecast data:
+                    fetch(data.properties.forecast)
+                    .then(response => {
+                        // check if the request was successful
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        // Parse the response as JSON
+                        return response.json();
+                    })
+                    .then(data => {
+                        // handle the response data
+                        // get the forecast for the current time
+                        console.log("weather forecast: ", data.properties.periods[0]); // idx 0 for most current update
+                        this.curr_temp = data.properties.periods[0].temperature;
+                        this.curr_weather = data.properties.periods[0].shortForecast;
+
+                        this.weather_data.innerText = this.curr_weather + ' ' + this.curr_temp + '\u00B0 ' + data.properties.periods[0].temperatureUnit;
+                        this.wind_spd.innerText = "Current Windspeed: " + data.properties.periods[0].windSpeed + ' in the ' + data.properties.periods[0].windDirection + ' direction';
+                        console.log(data.properties.periods[0].relativeHumidity.value);
+                        this.humidity.innerText = "Current Humidity: " + data.properties.periods[0].relativeHumidity.value + '%';
+
+                        // clear, sunny, cloudy, fog, rain, lightning, else sun w/ clouds img
+                        if (this.curr_weather.toLowerCase().includes('clear') || this.curr_weather.toLowerCase().includes('sunny'))
+                            this.weather_img.src = './weather_imgs/sunny.png';
+                        else if (this.curr_weather.toLowerCase().includes('cloudy'))
+                            this.weather_img.src = './weather_imgs/cloudy.png';
+                        else if (this.curr_weather.toLowerCase().includes('fog'))
+                            this.weather_img.src = './weather_imgs/fog.png';
+                        else if (this.curr_weather.toLowerCase().includes('rain'))
+                            this.weather_img.src = './weather_imgs/rain.png';
+                        else if (this.curr_weather.toLowerCase().includes('lightning'))
+                            this.weather_img.src = './weather_imgs/lightning.png';
+                        else 
+                            this.weather_img.src = './weather_imgs/sunny.png';
+                    })
+
+                })
+                .catch(error => {
+                    // Handle errors
+                    console.error('Error:', error);
+                });
+
+				console.log('connected!', this);
+			}
+
+			// runs when the element is removed from the DOM
+			disconnectedCallback () {
+				console.log('disconnected', this);
+			}
+
+		}
+
+		// Define the new web component
+		if ('customElements' in window) {
+			customElements.define('weather-widget', WeatherWidget);
+		}
+
+	</script>
+
+</body>
+</html>
+
+
+
